@@ -70,14 +70,16 @@ def return_next_page(soup):
     """
     next_url = None
     cur_page = soup.find('a', {'class': 'active'}, href=re.compile('airline-reviews/airasia'))
+    print(cur_page)
 
     cur_href = cur_page['href']
     # check if next page exists
     search_next = cur_page.findNext('li').get('class')
+    #print( not search_next)
 
     if not search_next:
         next_page_href = cur_page.findNext('li').find('a')['href']
-        print(next_page_href)
+        #print(next_page_href)
         next_url = BASE_URL + next_page_href
     return next_url
 
