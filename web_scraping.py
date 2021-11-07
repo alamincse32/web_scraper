@@ -11,6 +11,7 @@ forum_data = []
 BASE_URL = 'https://www.nationaleatingdisorders.org'
 HEADER = {'User-Agent': 'Mozilla/5.0'}
 
+
 # get_request = Request(BASE_URL,headers=header)
 # web_page = urlopen(get_request).read()
 #
@@ -54,25 +55,32 @@ def scrape_data(post_link):
     post_container = post_page.find('div', {'id': 'post-' + post_number[len(post_number) - 1]})
 
     if post_container is not None:
+        post_date = post_container.find('div', {'class': 'forum-posted-on'})
+        date = str(post_date.text).split(" ")[1]
         post_title = str(post_container.find('div', {'class': 'forum-post-title'}).text).replace(" ", "").replace("\n",
                                                                                                                   "")
+        # if "03/11/2019" <= date <= "03/11/2020":
+        post_data_comment.append(date)
         if len(post_title) > 0:
             post_data_comment.append(post_title)
         posts = post_container.find('div', {'class': 'forum-post-content'}).findAll('p')
 
         for post in posts:
             post_text = post_text + str(post.text)
-        if len(post_text) > 0:
-            post_data_comment.append(post_text)
+            if len(post_text) > 0:
+                post_data_comment.append(post_text)
 
-    comment_container = post_page.find('div', {'id': 'forum-comments'})
-    if comment_container is not None:
-        for comment in comment_container.findAll('div', {'class': 'field-items'}):
-            comment_data = ""
-            for p in comment.findAll('p'):
-                comment_data += str(p.text)
-            if len(comment_data) > 0:
-                post_data_comment.append(comment_data)
+        comment_container = post_page.find('div', {'id': 'forum-comments'})
+        if comment_container is not None:
+            for comment in comment_container.findAll('div', {'class': 'field-items'}):
+                comment_data = ""
+                for p in comment.findAll('p'):
+                    comment_data += str(p.text)
+                    if len(comment_data) > 0:
+                        post_data_comment.append(comment_data)
+        # else:
+        #     print("The date limit has been crossed")
+        #     print(len(post_data_comment))
     return post_data_comment
 
 
@@ -81,19 +89,27 @@ def next_page(link):
     forum_page = urlopen(get_request).read()
     soup = BeautifulSoup(forum_page, 'lxml')
     table_body = soup.find('tbody')
+    ret_variable = True
     for row in table_body.findAll('tr'):
         post_link = row.find('a')['href']
-        print(post_link)
         data = scrape_data(post_link)
         if len(data) > 0:
             post_and_comment_text.append(data)
+        else:
+            # print(post_link)
+            ret_variable = False
+            # break
+    # return ret_variable
 
 
 def load_forum_next_page(next_link):
     link = next_link.split("=")
     page_count = int(link[len(link) - 1])
     for i in range(1, page_count + 1):
+        print("Page number: " + str(i))
         next_page(link[0] + "=" + str(i))
+        # if not get_ret:
+        #     break
 
 
 def load_forum(forum_link):
@@ -101,22 +117,27 @@ def load_forum(forum_link):
     forum_page = urlopen(get_request).read()
     soup = BeautifulSoup(forum_page, 'lxml')
     item_list = soup.find('ul', {'class': 'pager'})
-    item = item_list.find('a', {'title': 'Go to last page'})
-    link = str(item['href'])
-    table_body = soup.find('tbody')
-    for row in table_body.findAll('tr'):
-        post_link = row.find('a')['href']
-        data = scrape_data(post_link)
-        if len(data) > 0:
-            post_and_comment_text.append(data)
-    load_forum_next_page(link)
-    if len(post_and_comment_text) > 0 :
-        data_frame = pd.DataFrame(post_and_comment_text)
-        file_name = str(forum_link).split("/")
-        file_name = file_name[len(file_name)-1]
-        data_frame.to_csv( file_name+".csv")
+    if item_list is None:
+        return
     else:
-        print("There is no data in this forum. Thanks for trying to scrape data from this site\n")
+        item = item_list.find('a', {'title': 'Go to last page'})
+        link = str(item['href'])
+        table_body = soup.find('tbody')
+        for row in table_body.findAll('tr'):
+            post_link = row.find('a')['href']
+            data = scrape_data(post_link)
+            if len(data) > 0:
+                post_and_comment_text.append(data)
+        load_forum_next_page(link)
+        if len(post_and_comment_text) > 0:
+            data_frame = pd.DataFrame(post_and_comment_text)
+            file_name = str(forum_link).split("/")
+            file_name = file_name[len(file_name) - 1]
+            print(file_name)
+            data_frame.to_csv("Before_Pendamic/" + file_name + ".csv")
+            post_and_comment_text.clear()
+        else:
+            print("There is no data in this forum. Thanks for trying to scrape data from this site\n")
 
 
 def create_url_for_next_page(url):
@@ -141,4 +162,3 @@ def create_url_for_next_page(url):
 
 if __name__ == '__main__':
     create_url_for_next_page(BASE_URL + "/forum")
-
