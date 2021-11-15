@@ -4,12 +4,15 @@ from urllib.request import Request, urlopen
 import requests
 from bs4 import BeautifulSoup
 import pandas as pd
+from datetime import datetime
 
 post_and_comment_text = []
 column_data = []
 forum_data = []
 BASE_URL = 'https://www.nationaleatingdisorders.org'
 HEADER = {'User-Agent': 'Mozilla/5.0'}
+START_DATE = datetime.strptime('02/29/2020','%m/%d/%Y')
+END_DATE = datetime.strptime('07/01/2018','%m/%d/%Y')
 
 
 # get_request = Request(BASE_URL,headers=header)
@@ -51,36 +54,66 @@ def scrape_data(post_link):
     post_page = urlopen(get_post_request)
 
     post_page = BeautifulSoup(post_page, 'lxml')
-    post_number = post_link.split('/')
-    post_container = post_page.find('div', {'id': 'post-' + post_number[len(post_number) - 1]})
+    # post_number = post_link.split('/')
+    post_container = post_page.find('div', {'about':  post_link})#'post-' + post_number[len(post_number) - 1]})
 
     if post_container is not None:
         post_date = post_container.find('div', {'class': 'forum-posted-on'})
         date = str(post_date.text).split(" ")[1]
         post_title = str(post_container.find('div', {'class': 'forum-post-title'}).text).replace(" ", "").replace("\n",
-                                                                                                                  "")
-        # if "03/11/2019" <= date <= "03/11/2020":
-        post_data_comment.append(date)
-        if len(post_title) > 0:
-            post_data_comment.append(post_title)
-        posts = post_container.find('div', {'class': 'forum-post-content'}).findAll('p')
+                                                                                                               "")
+        print(datetime.strptime(date,'%m/%d/%Y'))
+        if END_DATE <= datetime.strptime(date,'%m/%d/%Y') <= START_DATE:
+            post_data_comment.append(date)
+            if len(post_title) > 0:
+                post_data_comment.append(post_title)
+            post_author = post_container.find('div',{'class' : 'author-pane'})
+            author_name = post_author.find('span',{'class' : 'username'}).text
+            if len(author_name) > 0:
+                post_data_comment.append(author_name)
+            posts = post_container.find('div', {'class': 'forum-post-content'}).findAll('p')
 
-        for post in posts:
-            post_text = post_text + str(post.text)
+            for post in posts:
+                post_text = post_text + str(post.text)
+
             if len(post_text) > 0:
                 post_data_comment.append(post_text)
 
-        comment_container = post_page.find('div', {'id': 'forum-comments'})
-        if comment_container is not None:
-            for comment in comment_container.findAll('div', {'class': 'field-items'}):
-                comment_data = ""
-                for p in comment.findAll('p'):
-                    comment_data += str(p.text)
-                    if len(comment_data) > 0:
-                        post_data_comment.append(comment_data)
-        # else:
-        #     print("The date limit has been crossed")
-        #     print(len(post_data_comment))
+            comment_container = post_page.find('div', {'id': 'forum-comments'})
+            if comment_container is not None:
+                comments_date_panel = comment_container.findAll('div', {'class':'forum-post-info clearfix'})
+                comments_body_panel = comment_container.findAll('div', {'class': 'forum-post-wrapper'})
+
+                for i in range(len(comments_date_panel)):
+                    date_panel = comments_date_panel[i].find('div',{'class' : 'forum-posted-on'})
+                    date = str(date_panel.text).replace("\n","").replace(" ","")
+                    user_name_spane = comments_body_panel[i].find('span',{'class' : 'username'})
+                    user_name = str(user_name_spane.text)
+                    comment_data = ""
+                    for p in comments_body_panel[i].findAll('p'):
+                        comment_data += str(p.text)
+                    post_data_comment.append(user_name)
+                    post_data_comment.append(date)
+                    post_data_comment.append(comment_data)
+                # print(len(comments_date_panel) == len(comments_body_panel))
+                # for comment in comment_container.findAll('div', {'class': ['forum-post-info clearfix','forum-post-wrapper']}):
+                #     comment_date_panel = comment_container.find('div',{'class' : 'forum-posted-on'})
+                #     comment_date = str(comment_date_panel.text).replace("\n","").replace(" ","")
+                #     if len(comment_date) > 0:
+                #         post_data_comment.append(comment_date)
+                #     comment_author_panel = comment_container.find('span',{'class' : 'username'})
+                #     comment_author_name = str(comment_author_panel.text)
+                #     if len(comment_author_name) > 0:
+                #         post_data_comment.append(comment_author_name)
+                #     comment_data = ""
+                #     for p in comment.findAll('p'):
+                #         comment_data += str(p.text)
+                #     if len(comment_data) > 0:
+                #         post_data_comment.append(comment_data)
+            # else:
+            #     print("The date limit has been crossed")
+            #     print(len(post_data_comment))
+        print(post_data_comment)
     return post_data_comment
 
 
@@ -161,4 +194,6 @@ def create_url_for_next_page(url):
 
 
 if __name__ == '__main__':
+    # scrape_data('/forum/35214')
     create_url_for_next_page(BASE_URL + "/forum")
+
