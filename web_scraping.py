@@ -14,7 +14,7 @@ forum_data = []
 BASE_URL = 'https://www.nationaleatingdisorders.org'
 HEADER = {'User-Agent': 'Mozilla/5.0'}
 START_DATE = datetime.strptime('02/29/2020', '%m/%d/%Y')
-END_DATE = datetime.strptime('01/01/2018', '%m/%d/%Y')
+END_DATE = datetime.strptime('07/01/2018', '%m/%d/%Y')
 
 
 # get_request = Request(BASE_URL,headers=header)
@@ -49,6 +49,8 @@ END_DATE = datetime.strptime('01/01/2018', '%m/%d/%Y')
 # print(data_frame)
 
 def scrape_data(post_link):
+    admin_comment = 0
+    user_comment = 0
     post_data = []
     comment_data_for_regular_user = []
     comment_data_for_admin_user = []
@@ -109,11 +111,13 @@ def scrape_data(post_link):
                         comment_data_for_admin_user.append(date)
                         comment_data_for_admin_user.append(comment_title)
                         comment_data_for_admin_user.append(comment_data)
+                        admin_comment+=1
                     else:
                         comment_data_for_regular_user.append(user_name)
                         comment_data_for_regular_user.append(date)
                         comment_data_for_regular_user.append(comment_title)
                         comment_data_for_regular_user.append(comment_data)
+                        user_comment+=1
                 # print(len(comments_date_panel) == len(comments_body_panel))
                 # for comment in comment_container.findAll('div', {'class': ['forum-post-info clearfix','forum-post-wrapper']}):
                 #     comment_date_panel = comment_container.find('div',{'class' : 'forum-posted-on'})
@@ -134,6 +138,8 @@ def scrape_data(post_link):
             #     print(len(post_data_comment))
 
     # print(post_data)
+    # comment_data_for_admin_user.append(admin_comment)
+    # comment_data_for_regular_user.append(user_comment)
     return [post_data, comment_data_for_regular_user, comment_data_for_admin_user]
 
 
@@ -189,11 +195,11 @@ def load_forum(forum_link):
         file_name = file_name[len(file_name) - 1]
         if len(post_and_comment_text_regular_user) > 0:
             data_frame = pd.DataFrame(post_and_comment_text_regular_user)
-            data_frame.to_csv("Before_Pendamic_Regular_User/" + file_name + ".csv", encoding='utf-8-sig')
+            data_frame.to_csv("Before_Pendamic_Regular_User/" + file_name + "regular-user_before"+".csv", encoding='utf-8-sig')
             post_and_comment_text_regular_user.clear()
         if len(post_and_comment_text_admin_user) > 0:
             data_frame = pd.DataFrame(post_and_comment_text_admin_user)
-            data_frame.to_csv("Before_Pendamic_Admin_User/" + file_name + ".csv", encoding='utf-8-sig')
+            data_frame.to_csv("Before_Pendamic_Admin_User/" + file_name + "admin-user_before"+".csv", encoding='utf-8-sig')
             post_and_comment_text_admin_user.clear()
 
 
